@@ -1,18 +1,16 @@
-# Inazuma Eleven Victory Road (Nintendo Switch)
-# Noesis script adapted by Daiki froms DKDave's Yokai Watch 4 script
+# Level-5 Games (Nintendo Switch and PC)
+# Noesis script adapted by Daiki froms DKDave's Yokai Watch 4 script & AFGRocha
 # Load meshes from both .G4PKM and .G4MD files
-# Last updated: 12 April  2024
+# Last updated: 9 November 2024
 
 # TO DO LIST:
-
-# Possibily some textures are loading wrong
 # Add skeleton
 
 
 from inc_noesis import *
 
 def registerNoesisTypes():
-	handle = noesis.register("Inazuma Eleven Victory Road (Switch)",".g4pkm;.g4md")
+	handle = noesis.register("Level-5 Engine",".g4pkm;.g4md")
 	noesis.setHandlerTypeCheck(handle, bcCheckType)
 	noesis.setHandlerLoadModel(handle, bcLoadModel)
 	noesis.logPopup()
@@ -128,36 +126,67 @@ def bcLoadModel(data, mdlList):
 
 			material = NoeMaterial("Mat_" + str(m), "")
 			print(temp_list)
+			
+			base_texture = None
+			normal_texture = None
+			spec_texture = None
+			occ_texture = None
+			
 			if len(temp_list) == 6:
 				diff = temp_list[5]
 				spec = temp_list[4]
 				occ =  temp_list[3]
-				material.setTexture(tex_names[diff])
-				material.setSpecularTexture(tex_names[spec])
-				material.setOcclTexture(tex_names[occ])
+				base_texture = tex_names[diff]
+				spec_texture = tex_names[spec]
+				occ_texture = tex_names[occ]
 
 			if len(temp_list) == 5:
 				diff = temp_list[1] if filename[0] == "c" else temp_list[4]
 				spec = temp_list[0]
 				occ =  temp_list[2]
-				material.setTexture(tex_names[diff])
-				material.setSpecularTexture(tex_names[spec])
-				material.setOcclTexture(tex_names[occ])
+				base_texture = tex_names[diff]
+				spec_texture = tex_names[spec]
+				occ_texture = tex_names[occ]
 			
 			if len(temp_list) == 4:
-				print(temp_list)
 				diff = temp_list[3]
-				#spec = temp_list[]
-				material.setTexture(tex_names[diff])
-				#material.setSpecularTexture(tex_names[spec])
+				base_texture = tex_names[diff]
 
 			if len(temp_list) == 3:
 				diff = temp_list[2]
-				material.setTexture(tex_names[0])
-			
+				base_texture = tex_names[0]
+
+			# Ensure no special files are used as the base texture
+			def truncate_texture_name(tex_name):
+				if tex_name.endswith("oc"):
+					return tex_name[:-2]
+				elif tex_name.endswith("line"):
+					return tex_name[:-4]
+				elif tex_name.endswith("msk"):
+					return tex_name[:-3]
+				elif tex_name.endswith("sp"):
+					return tex_name[:-2]
+				elif tex_name.endswith("spm"):
+					return tex_name[:-3] 
+				return tex_name
+
+			# This code fixes shadow/normal maps from being used as main textures. You're welcome.
+			if base_texture:
+				base_texture = truncate_texture_name(base_texture)
+				if base_texture.endswith("oc"):
+					base_texture = None
+
+			# Asign textures
+			if base_texture:
+				material.setTexture(base_texture)
+			if normal_texture:
+				material.setSpecularTexture(normal_texture)
+			if spec_texture:
+				material.setSpecularTexture(spec_texture)
+			if occ_texture:
+				material.setOcclTexture(occ_texture)
 
 			mat_list.append(material)
-
 	else:
 		print("Texture data file " + tex_file + " doesn't exist.  No textures will be available.")
 		tex_list = []
@@ -244,8 +273,6 @@ def bcLoadModel(data, mdlList):
 
 	return 1
 
-
-
 def Align(value, div):
 	mod = value % div
 
@@ -254,69 +281,55 @@ def Align(value, div):
 
 	return value
 
-
-
-# Read textures
-
 def ReadTextures(bs):
-	print("Reading textures")
+    print("Reading textures")
 
-	tex_list = []
-	tex_names = []
+    tex_list = []
+    tex_names = []
 
-	bs.seek(0x20)
-	tex_count = bs.readUShort()
+    bs.seek(0x20)
+    tex_count = bs.readUShort()
 
-	name_off = (tex_count * 0x30) + 0x60 + (tex_count * 4) + tex_count
-	name_off = Align(name_off, 4)
+    name_off = (tex_count * 0x30) + 0x60 + (tex_count * 4) + tex_count
+    name_off = Align(name_off, 4)
+    bs.seek(name_off)
 
-	bs.seek(name_off)
+    for n in range(tex_count):
+        bs.seek(name_off + (n * 2))
+        text_off = bs.readUShort() + name_off
+        bs.seek(text_off)
+        tex_names.append(bs.readString())
 
-	for n in range(tex_count):
-		bs.seek(name_off + (n * 2))
-		text_off = bs.readUShort() + name_off
-		bs.seek(text_off)
-		tex_names.append(bs.readString())
+    bs.seek(0x0c)
+    data_start = bs.readUInt() + 0x60
+    data_start = Align(data_start, 0x10)
 
-	bs.seek(0x0c)
-	data_start = bs.readUInt() + 0x60
-	data_start = Align(data_start, 0x10)
+    for t in range(tex_count):
+        bs.seek((t * 0x30) + 0x64)
+        offset = bs.readUInt() + data_start
+        size = bs.readUInt()
+        bs.seek(offset)
 
-	for t in range(tex_count):
-		bs.seek((t * 0x30) + 0x64)
-		offset = bs.readUInt() + data_start
-		size = bs.readUInt()
-		bs.seek(offset + 0x8)
-		data_size = bs.readUInt()
-		bs.readUInt()
-		bs.readUInt()
-		width = bs.readUInt()
-		height = bs.readUInt()
+        # Check if DDS format (header starts with 'DDS ')
+        format_check = bs.readBytes(4)
+        if format_check == b'DDS ':
+            # Use loadTexByHandler to load DDS texture
+            bs.seek(offset)  # Ensure pointer is at the start of DDS data
+            raw_image_data = bs.readBytes(size)
+            texture = rapi.loadTexByHandler(raw_image_data, ".dds")
+            if texture:
+                texture.name = tex_names[t]
+                tex_list.append(texture)
+        else:
+            bs.seek(offset + 0x100)
+            data_size = bs.readUInt()
+            width = bs.readUInt()
+            height = bs.readUInt()
+            raw_image = bs.readBytes(data_size)
 
-		bs.seek(offset + 0x100)
-		raw_image = bs.readBytes(data_size)
+            # Assuming BC7 for NXTCH, apply the same decoding
+            raw_image = rapi.imageDecodeDXT(raw_image, width, height, noesis.FOURCC_BC7)
+            texture = NoeTexture(tex_names[t], width, height, raw_image, noesis.NOESISTEX_RGBA32)
+            tex_list.append(texture)
 
-		blockwidth = blockheight = 4
-		widthinblocks = (width + (blockwidth - 1)) // blockwidth
-		heightinblocks = (height + (blockheight - 1)) // blockheight
-
-		blockSize = 16 if width >= 1024 else 16
-
-		maxblockheight = 16 if width >= 512 and height <= 512 else 16
-		maxblockheight = 8 if width <= 512 and height <= 256 else 16
-		maxblockheight = 8 if width <= 256 and height <= 256 else maxblockheight
-		maxblockheight = 4 if width <= 256 and height <= 128 else maxblockheight
-		maxblockheight = 4 if width <= 128 or height <= 64 else maxblockheight
-		maxblockheight = 1 if width <= 64 or height <= 32 else maxblockheight
-		
-		raw_image = rapi.callExtensionMethod("untile_blocklineargob", raw_image, widthinblocks, heightinblocks, blockSize, maxblockheight)
-		raw_image = rapi.imageDecodeDXT(raw_image, width, height, noesis.FOURCC_BC7)				# always BC7
-		tex1 = NoeTexture(tex_names[t], width, height, raw_image, noesis.NOESISTEX_RGBA32)
-
-		print("{0:<15x}{1:<15x}{2:<15x}{3:<15}{4:<15}".format(offset, size, data_size, width, height))
-
-		tex_list.append(tex1)
-
-	return tex_list, tex_names
-
-
+    return tex_list, tex_names
