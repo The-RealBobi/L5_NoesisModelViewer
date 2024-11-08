@@ -1,24 +1,28 @@
-## Important Update
-With the release of the Steam version of the Beta, it seems Level-5 made some changes, if you are trying to load the ripped textures from that version, it might not work, if I ever get the chance I'll update the script but for now I'm sorry for the inconvinience
+# Level-5 Engine Noesis Script
 
-# Inazuma Eleven Victory Road Noesis Script
+This Noesis script allows you to load `.g4md` and `.g4pkm` files used in games created with the Level-5 engine.
 
-<p>Noesis Script to load g4md and g4pkm files.</p>
-<p> 
-  
- Download Noesis [here](https://richwhitehouse.com/index.php?content=inc_projects.php&showproject=91) </p>
+## Installation
 
-<p>Place the noesis script on plugins/python</p>
-<p>For this to work you need the model, mesh and texture file in the same folder and all should have the same name</p>
-<p>Example of how your folder should look like:</p>
+1. **Download Noesis**: Download Noesis from [here](https://richwhitehouse.com/index.php?content=inc_projects.php&showproject=91).
+2. **Install the Script**: Place the Noesis script in 
+the `plugins/python` folder inside the Noesis folder.
 
-![folder](https://i.imgur.com/7x5PIp5.png)
+⚠️ (If you have any other script that supports previewing Level-5 models with texture files, you may have to remove it, since it may conflict on the decryption of the textures when previewing the model) 
 
-<p>Once you open Noesis on your folder open the g4md or g4pkm file and you should have the following results:</p>
+## Previewing models
 
+To preview the model with the textures applied, you must have the model, mesh, and texture files in the same folder and have them sharing the **exact same name** (e.g., `c11010060.g4md`, `c11010060.g4pkm`, `c11010060.png`).
 
-![image](https://github.com/AFGRocha/Inazuma-Eleven-Victory-Road-Noesis-Script/assets/29603913/e6492b47-cd26-4768-8ff4-957862152510)
+⚠️ Not all models work correctly with this script.
 
-![image](https://github.com/AFGRocha/Inazuma-Eleven-Victory-Road-Noesis-Script/assets/29603913/0805e278-6d39-4009-98bc-17e06667b62e)
+### Example folder structure:
 
-
+```plaintext
+/c11010060
+    c11010060.g4md
+    c11010060.g4pkm / c11010060.g4mg
+    c11010060.g4tx
+```
+## To-do:
+- Support model skeletons.
