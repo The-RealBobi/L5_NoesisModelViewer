@@ -20,8 +20,8 @@ To preview the model with the textures applied, you must have the model, mesh, a
 
 ```plaintext
 /c11010060
-    c11010060.g4md
-    c11010060.g4pkm / c11010060.g4mg
+    c11010060.g4pkm / c11010060.g4md
+    c11010060.g4mg
     c11010060.g4tx
 ```
 ## To-do:
